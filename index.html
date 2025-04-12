@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Check</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .container {
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .message {
+            font-size: 1.2em;
+            margin-top: 15px;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .info {
+            color: #555;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Checking Access...</h1>
+        <div id="statusMessage" class="message">Please wait while we verify your access.</div>
+        <div id="ipInfo" class="info"></div>
+    </div>
+
+    <script>
+        // --- Configuration (INSECURE: Visible in Browser Source!) ---
+        const ALLOWED_IP = "103.177.74.98"; // <<< !!! REPLACE WITH THE SPECIFIC IP (BUT IT'S VISIBLE!)
+        const REDIRECT_TARGET_URL = "https://www.google.com"; // <<< Replace with target website
+        const REDIRECT_DELAY_MS = 3000; // Delay in milliseconds (e.g., 3000 = 3 seconds)
+        // ------------------------------------------------------------
+
+        const statusDiv = document.getElementById('statusMessage');
+        const ipInfoDiv = document.getElementById('ipInfo');
+
+        // Function to attempt redirect
+        function attemptRedirect() {
+            statusDiv.innerHTML = `Success! Redirecting you to <a href="${REDIRECT_TARGET_URL}">${REDIRECT_TARGET_URL}</a>...`;
+            statusDiv.className = 'message success';
+            setTimeout(() => {
+                window.location.href = REDIRECT_TARGET_URL;
+            }, REDIRECT_DELAY_MS);
+        }
+
+        // Function to show access denied
+        function showAccessDenied(detectedIp) {
+            statusDiv.textContent = 'Access Denied.';
+            statusDiv.className = 'message error';
+            if (detectedIp) {
+               ipInfoDiv.textContent = `(Your detected IP: ${detectedIp})`;
+            } else {
+               ipInfoDiv.textContent = `(Could not detect your IP)`;
+            }
+        }
+
+        // --- Main Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Use a third-party service to get the public IP
+            fetch('https://api.ipify.org?format=json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Network response was not ok: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const detectedIp = data.ip;
+                    ipInfoDiv.textContent = `(Your detected IP: ${detectedIp})`;
+
+                    console.log(`Detected IP: ${detectedIp}`); // For debugging
+                    console.log(`Allowed IP: ${ALLOWED_IP}`);   // For debugging
+
+                    // Compare IPs (INSECURE CHECK)
+                    if (detectedIp === ALLOWED_IP) {
+                        console.log("IP Match - Granting access (client-side).");
+                        attemptRedirect();
+                    } else {
+                        console.log("IP Mismatch - Denying access (client-side).");
+                        showAccessDenied(detectedIp);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching IP address:', error);
+                    statusDiv.textContent = 'Error verifying access.';
+                    statusDiv.className = 'message error';
+                    ipInfoDiv.textContent = `Could not retrieve IP address. ${error.message}`;
+                });
+        });
+    </script>
+</body>
+</html>
